@@ -8,7 +8,7 @@ audit_file = open(audit_files_path, 'r')
 #get all types
 exes = []
 for line in audit_file:
-    if 'key="mdatp"' and 'type=SYSCALL' in line:
+    if 'type=SYSCALL' in line:
         split = line.split(' ')
         exes.append(split[25])
 

@@ -27,12 +27,13 @@ This tool downloads specified profile from JAMF server to stdout
 """ % sys.argv[0], file=sys.stderr)
 
 def query_jamf_profile(url, user, password, name):
-    credentials = base64.b64encode('{}:{}'.format(user, password).encode('ISO-8859-1'))
-    url = '{}/JSSResource/osxconfigurationprofiles/name/{}'.format(url, urllibquote.quote(name))
+    credentials = base64.b64encode(f'{user}:{password}'.encode('ISO-8859-1'))
+    url = f'{url}/JSSResource/osxconfigurationprofiles/name/{urllibquote.quote(name)}'
+
 
     req = urllibreq.Request(url)
     req.add_header('Accept', 'application/json')
-    req.add_header('authorization', 'Basic ' + credentials.decode())
+    req.add_header('authorization', f'Basic {credentials.decode()}')
 
     return urllibreq.urlopen(req).read()
 
@@ -45,19 +46,19 @@ try:
     opts, args = getopt.getopt(sys.argv[1:], 'hs:u:p:n:', ['help', 'server=', 'user=', 'password=', 'name='])
 
     for k, v in opts:
-        if k == '-s' or k == '--server':
+        if k in ['-s', '--server']:
             url = v
 
-        if k == '-u' or k == '--user':
+        if k in ['-u', '--user']:
             user = v
 
-        if k == '-p' or k == '--password':
+        if k in ['-p', '--password']:
             password = v
 
-        if k == '-n' or k == '--name':
+        if k in ['-n', '--name']:
             name = v
 
-        if k == '-h' or k == '--help':
+        if k in ['-h', '--help']:
             usage()
             exit(0)
 

@@ -3,16 +3,17 @@
 from __future__ import print_function
 import getopt, os, sys, plistlib, re, shutil, sys, argparse, uuid
 
-if sys.stdout.isatty():
-    class tc:
+
+
+class tc:
+    if sys.stdout.isatty():
         green = '\033[92m'
         yellow = '\033[93m'
         red = '\033[91m'
         grey = '\033[2m'
         cancel = '\033[0m'
 
-else:
-    class tc:
+    else:
         green = ''
         yellow = ''
         red = ''
@@ -20,28 +21,27 @@ else:
         cancel = ''
 
 def print_warning(s):
-    print('{}[WARNING]{} {}'.format(tc.yellow, tc.cancel, s))
+    print(f'{tc.yellow}[WARNING]{tc.cancel} {s}')
 
 def print_success(s):
-    print('{}[OK]{} {}'.format(tc.green, tc.cancel, s))
+    print(f'{tc.green}[OK]{tc.cancel} {s}')
 
 def print_error(s):
-    print('{}[ERROR]{} {}'.format(tc.red, tc.cancel, s))
+    print(f'{tc.red}[ERROR]{tc.cancel} {s}')
 
 def print_debug(s):
-    print('{}{}{}'.format(tc.grey, s, tc.cancel))
+    print(f'{tc.grey}{s}{tc.cancel}')
 
 def read_plist(path):
-    print_debug('Reading {}'.format(path))
+    print_debug(f'Reading {path}')
 
-    if 'load' in plistlib.__all__:
-        with open(path, 'rb') as f:
-            return plistlib.load(f)
-    else:
+    if 'load' not in plistlib.__all__:
         return plistlib.readPlist(path)
+    with open(path, 'rb') as f:
+        return plistlib.load(f)
 
 def write_plist(path, plist):
-    print_debug("Saving {}...".format(path))
+    print_debug(f"Saving {path}...")
 
     if 'dumps' in plistlib.__all__:
         s = plistlib.dumps(plist).decode('UTF-8')
@@ -77,7 +77,7 @@ args = parser.parse_args()
 try:
     plist_template = read_plist(args.template)
 except:
-    print_error("Cannot read template {}".format(args.template))
+    print_error(f"Cannot read template {args.template}")
     sys.exit(1)
 
 plist_template['PayloadContent'] = []
@@ -101,14 +101,12 @@ for f_in in getattr(args, 'in'):
 
             plist_template['PayloadContent'].append(payload)
     except:
-        print_error("Cannot read input file {}".format(f_in))
+        print_error(f"Cannot read input file {f_in}")
 
 if tcc_payload is not None:
     plist_template['PayloadContent'].append(tcc_payload)
 
-out_file = getattr(args, 'out')
-
-if out_file:
+if out_file := getattr(args, 'out'):
     write_plist(out_file, plist_template)
 else:
     print_debug(plist_template)
