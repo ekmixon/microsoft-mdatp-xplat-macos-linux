@@ -3,16 +3,17 @@
 from __future__ import print_function
 import getopt, os, sys, plistlib, re, shutil, sys, argparse
 
-if sys.stdout.isatty():
-    class tc:
+
+
+class tc:
+    if sys.stdout.isatty():
         green = '\033[92m'
         yellow = '\033[93m'
         red = '\033[91m'
         grey = '\033[2m'
         cancel = '\033[0m'
 
-else:
-    class tc:
+    else:
         green = ''
         yellow = ''
         red = ''
@@ -52,7 +53,7 @@ class PayloadSystemPolicyAllFiles(Payload):
         return (self.identifier, self.service_type)
 
     def __str__(self):
-        return '{}/{} ({})'.format(self.payload_type, self.service_type, self.identifier)
+        return f'{self.payload_type}/{self.service_type} ({self.identifier})'
 
 class PayloadKEXT(Payload):
     def __init__(self, payload_type, id):
@@ -63,7 +64,7 @@ class PayloadKEXT(Payload):
         return (self.id,)
 
     def __str__(self):
-        return '{} ({})'.format(self.payload_type, self.id)
+        return f'{self.payload_type} ({self.id})'
 
 class PayloadSysExt(Payload):
     def __init__(self, payload_type, team_id, bundle_id):
@@ -75,7 +76,7 @@ class PayloadSysExt(Payload):
         return (self.team_id, self.bunle_id)
 
     def __str__(self):
-        return '{} ({}, {})'.format(self.payload_type, self.team_id, self.bunle_id)
+        return f'{self.payload_type} ({self.team_id}, {self.bunle_id})'
 
 class PayloadWebContentFilter(Payload):
     def __init__(self, payload_type, payload):
@@ -90,7 +91,7 @@ class PayloadWebContentFilter(Payload):
         return (self.id,)
 
     def __str__(self):
-        return '{} ({})'.format(self.payload_type, self.id)
+        return f'{self.payload_type} ({self.id})'
 
 class PayloadNotifications(Payload):
     def __init__(self, payload_type, payload):
@@ -101,7 +102,7 @@ class PayloadNotifications(Payload):
         return (self.id,)
 
     def __str__(self):
-        return '{} ({})'.format(self.payload_type, self.id)
+        return f'{self.payload_type} ({self.id})'
 
 class PayloadOnboardingInfo(Payload):
     def __init__(self, payload_type, payload):
@@ -111,28 +112,27 @@ class PayloadOnboardingInfo(Payload):
         return ()
 
     def __str__(self):
-        return '{}'.format(self.payload_type)
+        return f'{self.payload_type}'
 
 def print_warning(s):
-    print('{}[WARNING]{} {}'.format(tc.yellow, tc.cancel, s))
+    print(f'{tc.yellow}[WARNING]{tc.cancel} {s}')
 
 def print_success(s):
-    print('{}[OK]{} {}'.format(tc.green, tc.cancel, s))
+    print(f'{tc.green}[OK]{tc.cancel} {s}')
 
 def print_error(s):
-    print('{}[ERROR]{} {}'.format(tc.red, tc.cancel, s))
+    print(f'{tc.red}[ERROR]{tc.cancel} {s}')
 
 def print_debug(s):
-    print('{}{}{}'.format(tc.grey, s, tc.cancel))
+    print(f'{tc.grey}{s}{tc.cancel}')
 
 def read_plist(path):
-    print_debug('Reading {}'.format(path))
+    print_debug(f'Reading {path}')
 
-    if 'load' in plistlib.__all__:
-        with open(path, 'rb') as f:
-            return plistlib.load(f)
-    else:
+    if 'load' not in plistlib.__all__:
         return plistlib.readPlist(path)
+    with open(path, 'rb') as f:
+        return plistlib.load(f)
 
 def get_SystemPolicyAllFiles(definition):
     return PayloadSystemPolicyAllFiles('com.apple.TCC.configuration-profile-policy', 'SystemPolicyAllFiles', {
@@ -149,7 +149,7 @@ def get_payloads(payload_type, content):
                 if service_type == 'SystemPolicyAllFiles':
                     yield get_SystemPolicyAllFiles(definition)
                 else:
-                    print_warning('Unexpected payload type: {}, {}'.format(payload_type, service_type))
+                    print_warning(f'Unexpected payload type: {payload_type}, {service_type}')
     elif payload_type == 'com.apple.syspolicy.kernel-extension-policy':
         for id in content["AllowedTeamIdentifiers"]:
             yield PayloadKEXT(payload_type, id)
@@ -189,11 +189,7 @@ def parse_profiles(path):
                 content = item['PayloadContent']
 
                 for payload in get_payloads(payload_type, content):
-                    if payload in result:
-                        result_payloads = result[payload]
-                    else:
-                        result_payloads = []
-
+                    result_payloads = result.get(payload, [])
                     result_payloads.append({
                         'payload': payload,
                         'path': path,
@@ -213,8 +209,8 @@ def parse_expected(path):
         payload_type = item['PayloadType']
         payloads = list(get_payloads(payload_type, item))
 
-        if len(payloads) == 0:
-            print_warning('Unexpected payload type: {}, {}'.format(payload_type, item))
+        if not payloads:
+            print_warning(f'Unexpected payload type: {payload_type}, {item}')
 
         result += payloads
 
@@ -226,11 +222,11 @@ def parse_tcc(path):
 
     try:
         shutil.copy(path, mdm_tcc)
-        os.system('plutil -convert xml1 "{}"'.format(mdm_tcc))
+        os.system(f'plutil -convert xml1 "{mdm_tcc}"')
         tcc = read_plist(mdm_tcc)
     except IOError:
         tcc = None
-        print_warning('No {} found, is the machine enrolled into MDM?'.format(path))
+        print_warning(f'No {path} found, is the machine enrolled into MDM?')
 
     if tcc:
         for service in tcc.values():
@@ -248,7 +244,7 @@ def parse_tcc(path):
     return result
 
 def format_location(profile_data):
-    return '{}, profile: "{}", deployed: {}'.format(profile_data['path'], profile_data['name'], profile_data['time'])
+    return f"""{profile_data['path']}, profile: "{profile_data['name']}", deployed: {profile_data['time']}"""
 
 def report(path_profiles, path_expected, path_tcc):
     map_profiles = parse_profiles(path_profiles)
@@ -271,34 +267,42 @@ def report(path_profiles, path_expected, path_tcc):
             if len(m) == 1:
                 if expected.payload == m[0]['payload'].payload:
                     if not check_tcc or t == m[0]['payload'].payload:
-                        print_success("Found {} in {}".format(expected, format_location(m[0])))
+                        print_success(f"Found {expected} in {format_location(m[0])}")
                     else:
-                        print_error("Found {} in {} but not in TCC database".format(expected, format_location(m[0])))
-                else:
-                    print_error("Found, but does not match expected {} in {}".format(expected, format_location(m[0])))
-                    print_debug("    Found: {}".format(m[0]['payload'].payload))
-            else:
-                print_error("Duplicate definitions, only one of them is active: {}".format(expected))
+                        print_error(
+                            f"Found {expected} in {format_location(m[0])} but not in TCC database"
+                        )
 
-                n=1
-                for d in m:
-                    if expected.payload == d['payload'].payload:
-                        match_label = '{}[Match]{}'.format(tc.green, tc.cancel)
-                    else:
-                        match_label = '{}[Mismatch]{}'.format(tc.red, tc.cancel)
+                else:
+                    print_error(
+                        f"Found, but does not match expected {expected} in {format_location(m[0])}"
+                    )
+
+                    print_debug(f"    Found: {m[0]['payload'].payload}")
+            else:
+                print_error(f"Duplicate definitions, only one of them is active: {expected}")
+
+                for n, d in enumerate(m, start=1):
+                    match_label = (
+                        f'{tc.green}[Match]{tc.cancel}'
+                        if expected.payload == d['payload'].payload
+                        else f'{tc.red}[Mismatch]{tc.cancel}'
+                    )
 
                     if check_tcc:
                         if t == d['payload'].payload:
-                            tcc_label = ' {}[In TCC]{}'.format(tc.green, tc.cancel)
+                            tcc_label = f' {tc.green}[In TCC]{tc.cancel}'
                         else:
-                            tcc_label = ' {}[Not in TCC]{}'.format(tc.red, tc.cancel)
+                            tcc_label = f' {tc.red}[Not in TCC]{tc.cancel}'
                     else:
                         tcc_label = ''
 
-                    print_debug("    Candidate {}: {} {}{}{}".format(n, format_location(d), tc.cancel, match_label, tcc_label))
-                    n += 1
+                    print_debug(
+                        f"    Candidate {n}: {format_location(d)} {tc.cancel}{match_label}{tcc_label}"
+                    )
+
         else:
-            print_error("Not provided: {}".format(expected))
+            print_error(f"Not provided: {expected}")
 
     # 'com.apple.ManagedClient.preferences'
     onboarding_infos = []
@@ -314,7 +318,7 @@ def report(path_profiles, path_expected, path_tcc):
         print_error("Multiple onboarding info found")
         i = 1
         for info in onboarding_infos:
-            print_debug("  {}: {}".format(i, info))
+            print_debug(f"  {i}: {info}")
 
 parser = argparse.ArgumentParser(description = "Validates MDM profiles for Defender")
 parser.add_argument("--template", type=str, help = "Template file from https://github.com/microsoft/mdatp-xplat/blob/master/macos/mobileconfig/combined/mdatp.mobileconfig")
@@ -339,7 +343,10 @@ if not args.template:
                     with urllib.request.urlopen(url) as response, open(args.template, 'wb') as out_file:
                         shutil.copyfileobj(response, out_file)
                 except:
-                    print_warning('Your Python has issues with SSL validation, please fix it. Querying {} with disabled validation.'.format(url))
+                    print_warning(
+                        f'Your Python has issues with SSL validation, please fix it. Querying {url} with disabled validation.'
+                    )
+
                     import ssl
                     ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -365,11 +372,11 @@ if not in_file:
     in_file = '/tmp/profiles.xml'
 
     if os.path.exists(in_file):
-        print_debug("{} already exists, remove it first".format(in_file))
-        os.system('sudo rm -f "{}"'.format(in_file))
+        print_debug(f"{in_file} already exists, remove it first")
+        os.system(f'sudo rm -f "{in_file}"')
 
     print_debug('Running "profiles" command, sudo password may be required...')
-    os.system('sudo profiles show -output "{}"'.format(in_file))
+    os.system(f'sudo profiles show -output "{in_file}"')
 
 in_file = os.path.abspath(os.path.expanduser(in_file))
 

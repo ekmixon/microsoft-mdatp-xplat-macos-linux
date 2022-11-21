@@ -21,19 +21,17 @@ if len(sys.argv) <= 1:
 args = parser.parse_args()
 
 # wdavhistory
-if args.Commands == 'wdavhistory':
-    if args.convert:
-        convert_wdavhistory = json2excel.Json2excel('wdavhistory', 'wdavhistory.csv')
-        convert_wdavhistory.json2excel()
-    else:
-        parser.print_help(sys.stderr)
-
-elif args.Commands == 'real-time-protection':
-    if args.convert:
-        convert_wdavhistory = json2excel.Json2excel('real_time_protection.json', 'real_time_protection.csv')
-        convert_wdavhistory.json2excel()
-    else:
-        parser.print_help(sys.stderr)
+if args.Commands == 'wdavhistory' and args.convert:
+    convert_wdavhistory = json2excel.Json2excel('wdavhistory', 'wdavhistory.csv')
+    convert_wdavhistory.json2excel()
+elif (
+    args.Commands == 'wdavhistory'
+    or args.Commands == 'real-time-protection'
+    and not args.convert
+    or args.Commands != 'real-time-protection'
+):
+    parser.print_help(sys.stderr)
 
 else:
-    parser.print_help(sys.stderr)
+    convert_wdavhistory = json2excel.Json2excel('real_time_protection.json', 'real_time_protection.csv')
+    convert_wdavhistory.json2excel()
